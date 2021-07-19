@@ -38,7 +38,7 @@ def train(anomalies_loc, dataset_loc, outdir, quant_size=0, pruning=False):
         callbacks.append(tfmot.sparsity.keras.UpdatePruningStep())
 
     # get the CNN autoencoder
-    model, encoder = conv_ae(quant_size=quant_size, pruning=pruning, size=X_train.shape[0]+X_test.shape[0])
+    model, encoder, decoder = conv_ae(quant_size=quant_size, pruning=pruning, size=X_train.shape[0]+X_test.shape[0])
 
     # begin training
     batch_size = 1024

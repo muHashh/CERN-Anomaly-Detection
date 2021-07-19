@@ -29,7 +29,7 @@ QUANT_INT = {
     16: 6
 }
 
-def conv_ae(size, latent_dim=8, quant_size=0, pruning=False):
+def conv_ae(size=0, latent_dim=8, quant_size=0, pruning=False):
     
     int_size = QUANT_INT[quant_size]
     
@@ -110,4 +110,4 @@ def conv_ae(size, latent_dim=8, quant_size=0, pruning=False):
 
     # compile AE
     autoencoder.compile(optimizer=Adam(lr=3E-3, amsgrad=True), loss='mse')
-    return autoencoder, encoder
+    return autoencoder, encoder, decoder
