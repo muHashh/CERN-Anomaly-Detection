@@ -1,15 +1,18 @@
 import numpy as np
+import tensorflow.keras.backend as K
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.models import Model
 from qkeras import QConv2D, QDense, QActivation
 import tensorflow_model_optimization as tfmot
+from external_models.garnet import GarNet
+import external_models.graph_nn as graph
+import tensorflow as tf
 from tensorflow.keras.layers import (
     Input,
     Reshape,
     Dense,
     Conv2D,
     AveragePooling2D,
-    MaxPooling2D,
     UpSampling2D,
     BatchNormalization,
     Flatten,
@@ -27,7 +30,17 @@ QUANT_INT = {
     12: 4,
     14: 4,
     16: 6
-}
+}       
+
+def chamfer_loss(inputs, outputs): #[batch_size x 100 x 3] -> [batch_size]
+    expand_inputs = tf.expand_dims(inputs, 2) # add broadcasting dim [batch_size x 100 x 1 x 3]
+    expand_outputs = tf.expand_dims(outputs, 1) # add broadcasting dim [batch_size x 1 x 100 x 3]
+    # => broadcasting [batch_size x 100 x 100 x 3] => reduce over last dimension (eta,phi,pt) => [batch_size x 100 x 100] where 100x100 is distance matrix D[i,j] for i all inputs and j all outputs
+    distances = tf.math.reduce_sum(tf.math.squared_difference(expand_inputs, expand_outputs), -1)
+    # get min for inputs (min of rows -> [batch_size x 100]) and min for outputs (min of columns)
+    min_dist_to_inputs = tf.math.reduce_min(distances,1)
+    min_dist_to_outputs = tf.math.reduce_min(distances,2)
+    return tf.math.reduce_mean(min_dist_to_inputs, 1) + tf.math.reduce_mean(min_dist_to_outputs, 1)
 
 def conv_ae(size=0, latent_dim=8, quant_size=0, pruning=False):
     
@@ -91,7 +104,7 @@ def conv_ae(size=0, latent_dim=8, quant_size=0, pruning=False):
                         kernel_quantizer='quantized_bits(16,10,0,alpha=1)')(x)
     
     decoder = Model(inputs=input_decoder, outputs=dec)
-    decoder.summary() # AE
+    decoder.summary()
     ae_outputs = decoder(encoder(input_encoder))
     autoencoder = Model(inputs=input_encoder, outputs=ae_outputs)
     autoencoder.summary()
@@ -103,11 +116,50 @@ def conv_ae(size=0, latent_dim=8, quant_size=0, pruning=False):
         pruning_schedule = tfmot.sparsity.keras.PolynomialDecay(
                                 initial_sparsity=0.0, final_sparsity=0.5,
                                 begin_step=start_pruning, end_step=end_pruning)
-        encoder_pruned = tfmot.sparsity.keras.prune_low_magnitude(encoder, pruning_schedule=pruning_schedule)
-        encoder = encoder_pruned
-        decoder_pruned = tfmot.sparsity.keras.prune_low_magnitude(decoder, pruning_schedule=pruning_schedule)
-        decoder = decoder_pruned
+        encoder = tfmot.sparsity.keras.prune_low_magnitude(encoder, pruning_schedule=pruning_schedule)
+        decoder = tfmot.sparsity.keras.prune_low_magnitude(decoder, pruning_schedule=pruning_schedule)
 
     # compile AE
     autoencoder.compile(optimizer=Adam(lr=3E-3, amsgrad=True), loss='mse')
     return autoencoder, encoder, decoder
+
+def garnet_ae(size=0, latent_dim=8, quant_size=0, pruning=False):
+
+    # model inputs
+    x = Input(shape=(16,3))
+    n = Input(shape=(1), dtype='uint16')
+    inputs = [x,n]
+
+    # model definition
+    x = BatchNormalization()(x)
+    v = GarNet(32, latent_dim, 32, simplified=True, collapse='mean', input_format='xn', 
+                    output_activation='relu', name='gar_1', quantize_transforms=False)([x,n])
+
+    v = Flatten()(v)
+    v = Dense(32, activation='sigmoid')(v)
+    v = Dense(32, activation='sigmoid')(v)
+    v = Dense(32, activation='sigmoid')(v)
+
+    outLayer = Dense(16, activation='softmax')(v)
+    outLayer = Reshape((16,1,1))(outLayer)
+    outLayer = UpSampling2D((1,3))(outLayer)
+
+    # build model
+    model = Model(inputs=inputs, outputs=outLayer)
+
+    # compile model with adam and mean square error
+    model.compile(optimizer=Adam(lr=1e-3, amsgrad=True) , loss="mse")
+    model.summary()
+
+    return model, None, None
+
+def graph_ae(nodes_n, feat_sz):
+
+    model = graph.GraphAutoencoder(nodes_n=nodes_n, feat_sz=feat_sz)
+    model.compile(optimizer=Adam(lr=1e-2, amsgrad=True), run_eagerly=True, loss="mse")
+
+    return model
+
+
+if __name__ == "__main__":
+    garnet_ae()
