@@ -115,12 +115,6 @@ def train(model_name, signals_loc, dataset_loc, outdir, latent_dim=8, quant_size
         with open (outdir + "/savedModel.json", "w") as f:
             f.write(modelJson)
         model.save_weights(outdir + "/savedWeights.h5")
-
-    # if ae_model == conv_ae:
-    #     encoded = encoder.predict(X_test)
-    #     output.create_dataset('encoded_mean_QCD', data=encoded[0])
-    #     output.create_dataset('encoded_logvar_QCD', data=encoded[1])
-    #     output.create_dataset('encoded_z_QCD', data=encoded[2])
     
     for signal_loc in glob.glob(signals_loc):
         signal_jets = h5py.File(signal_loc, 'r')["jetConstituentsList"][()]
@@ -135,10 +129,5 @@ def train(model_name, signals_loc, dataset_loc, outdir, latent_dim=8, quant_size
 
 
 if __name__ == "__main__":
-
-    # for bw in range(2,17,2):
-    #     train(ae_model=conv_ae, signals_loc="./signals/*", dataset_loc="./dataset_normalised/dataset.h5", 
-    #             outdir="output/cnn_qp_"+str(bw), quant_size=bw, pruning=True, latent_dim=8)
-
     train(**vars(args))
     
