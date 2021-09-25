@@ -1,6 +1,6 @@
 src/output*/
 src/dataset*/
-src/.ipynb_checkpoints
+src/plots/.ipynb_checkpoints
 src/.vscode
 src/plots/*-*.ipynb 
 src/__pycache__
