@@ -121,7 +121,7 @@ def conv_ae(size=0, latent_dim=8, quant_size=0, pruning=False):
 
     # compile AE
     autoencoder.compile(optimizer=Adam(lr=3E-3, amsgrad=True), loss='mse')
-    return autoencoder, encoder, decoder
+    return autoencoder
 
 def garnet_ae(size=0, latent_dim=8, quant_size=0, pruning=False):
 
@@ -151,7 +151,7 @@ def garnet_ae(size=0, latent_dim=8, quant_size=0, pruning=False):
     model.compile(optimizer=Adam(lr=1e-3, amsgrad=True) , loss="mse")
     model.summary()
 
-    return model, None, None
+    return model
 
 def graph_ae(nodes_n, feat_sz):
 

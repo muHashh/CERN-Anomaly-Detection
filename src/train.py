@@ -41,9 +41,9 @@ def normalized_adjacency(A):
     D = np.asarray([np.diagflat(dd) for dd in D]) # and diagonalize
     return np.matmul(D, np.matmul(A, D))
 
-def train(model_name, signals_loc, dataset_loc, outdir, latent_dim=8, quant_size=0, pruning=False):
+def train(model, signals, dataset, outdir, latent_dim=8, quant_size=0, pruning=False):
 
-    ae_model = model_names[model_name]
+    ae_model = model_names[model]
 
     # check for output directory
     if not os.path.exists(outdir):
@@ -56,7 +56,7 @@ def train(model_name, signals_loc, dataset_loc, outdir, latent_dim=8, quant_size
     config = tf.config.experimental.set_memory_growth(physical_devices[0], True)
 
     # load dataset
-    dataset = h5py.File(dataset_loc, "r")
+    dataset = h5py.File(dataset, "r")
     X_train = x_train = dataset["x_train"][()]
     X_test = x_test = dataset["x_test"][()]
     y_train = dataset["y_train"][()]
@@ -83,7 +83,7 @@ def train(model_name, signals_loc, dataset_loc, outdir, latent_dim=8, quant_size
             X_train = (x_train, np.ones((x_train.shape[0],1))*latent_dim)
             X_test = (x_test, np.ones((x_test.shape[0],1))*latent_dim)
 
-        model, encoder, decoder = ae_model(quant_size=quant_size, pruning=pruning, 
+        model = ae_model(quant_size=quant_size, pruning=pruning, 
                                         size=2*x_train[0].shape[0], latent_dim=latent_dim)
 
     # begin training
@@ -116,7 +116,7 @@ def train(model_name, signals_loc, dataset_loc, outdir, latent_dim=8, quant_size
             f.write(modelJson)
         model.save_weights(outdir + "/savedWeights.h5")
     
-    for signal_loc in glob.glob(signals_loc):
+    for signal_loc in glob.glob(signals):
         signal_jets = h5py.File(signal_loc, 'r')["jetConstituentsList"][()]
 
         if ae_model == garnet_ae:
