@@ -105,7 +105,7 @@ def train(model_name, signals_loc, dataset_loc, outdir, latent_dim=8, quant_size
     # save the model
     output = h5py.File(outdir + "/output.h5", 'w')
     output.create_dataset('val_loss', data=hist.history['val_loss'])
-    output.create_dataset('QCD', data=y_test)
+    output.create_dataset('QCD', data=x_test)
     output.create_dataset('predicted_QCD', data=pred)
 
     if ae_model != graph_ae:
