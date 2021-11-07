@@ -9,12 +9,12 @@ import argparse
 
 '''
 
-Example usage: python create_datasets.py --qcd=../../data/bkg_3mln.h5 --signals=../../data/sig* --qcd_out=./dataset/ --signals_out=./signals/
+Example usage: python create_datasets.py --qcd="../../data/bkg_3mln.h5" --signals="../../data/sig*" --qcd_out="./dataset/" --signals_out="./signals/"
 
 '''
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--qcd", help="Location of background data (HDF5 format)", type=str, default="../../data/")
+parser.add_argument("--qcd", help="Location of background data (HDF5 format)", type=str, default="../../data/bkg_3mln.h5")
 parser.add_argument("--signals", help="Location of signal data (HDF5 format)", type=str, default="../../data/sig*")
 parser.add_argument("--qcd_out", help="Location of processed QCD output directory", type=str, default="./dataset/")
 parser.add_argument("--signals_out", help="Location of processed signals output directory", type=str, default="./signals/")

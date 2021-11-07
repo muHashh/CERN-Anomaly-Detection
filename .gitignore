@@ -5,4 +5,5 @@ src/.vscode
 src/plots/*-*.ipynb 
 src/__pycache__
 src/external_models/__pycache__
-src/signals/
+src/signals*/
+src/utils/__pycache__
