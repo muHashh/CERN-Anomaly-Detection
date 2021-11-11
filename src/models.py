@@ -141,19 +141,19 @@ def garnet_ae(size=0, latent_dim=8, quant_size=0, pruning=False):
 
     # model definition
     x = BatchNormalization()(x)
-    encoder = GarNet(4, latent_dim, 32, simplified=True, collapse='mean', input_format='xn',
+    encoder = GarNet(4, 16, 8, simplified=True, collapse='mean', input_format='xn',
                output_activation='relu', name='garnet_encoder', quantize_transforms=False)([x, n])
-    # encoder = Reshape((8))(encoder)
+    encoder = Reshape((16,1))(encoder)
 
-    decoder = GarNet(4, 24, 8, simplified=True, collapse='mean', input_format='xn',
+    decoder = GarNet(4, 16*3, 8, simplified=True, collapse='mean', input_format='xn',
                  output_activation='relu', name='garnet_decoder', quantize_transforms=False)([encoder, n])
-    # decoder = Reshape((8,1))(decoder)
+    decoder = Reshape((16,3))(decoder)
 
     # build model
     model = Model(inputs=inputs, outputs=decoder)
 
     # compile model with adam and mean square error
-    model.compile(optimizer=Adam(lr=3e-3, amsgrad=True), loss="mse")
+    model.compile(optimizer=Adam(lr=1e-3, amsgrad=True), loss="mse")
     model.summary()
 
     return model
@@ -177,4 +177,4 @@ def gcn_ae(nodes_n, feat_sz):
 
 
 if __name__ == "__main__":
-    conv_ae()
+    garnet_ae()

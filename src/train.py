@@ -14,7 +14,7 @@ import argparse
 
 '''
 
-Example usage: python train.py --model=graph --signals="./signal/*" --dataset="./dataset/datset.h5" --outdir="./output/graph" --quant_size=0 --pruning=False --latent_dim=8 --device 0
+Example usage: python train.py --model=graph --signals="./signals/*" --dataset="./dataset/datset.h5" --outdir="./output/graph" --quant_size=0 --pruning=False --latent_dim=8 --device 0
 
 '''
 
@@ -27,7 +27,7 @@ parser.add_argument("--dataset", help="Where the dataset is located (HDF5 format
 parser.add_argument("--outdir", help="Location of model output", type=str, default="./output/cnn")
 parser.add_argument("--quant_size", help="Size of quantisation on model", type=int, default=0)
 parser.add_argument("--pruning", help="Whether pruning is enabled or not", type=bool, default=False)
-parser.add_argument("--latent_dim", help="Whether pruning is enabled or not", type=int, default=8)
+parser.add_argument("--latent_dim", help="Size of the latent space dimension", type=int, default=8)
 parser.add_argument("--device", help="CUDA device for training", type=int, default=0)
 args = parser.parse_args()
 
@@ -82,7 +82,7 @@ def train(model, signals, dataset, outdir, latent_dim=8, quant_size=0, pruning=F
 
     # begin training
     batch_size = 1024
-    n_epochs = 30
+    n_epochs = 200
 
     hist = model.fit(
         x=X_train,
