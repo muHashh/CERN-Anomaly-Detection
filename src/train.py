@@ -7,7 +7,7 @@ from pathlib import Path
 from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
 import tensorflow_model_optimization as tfmot
 from sklearn.preprocessing import MinMaxScaler
-from models import conv_ae, garnet_ae, garnet_ae2, graph_ae, gcn_ae
+from models import conv_ae, garnet_ae, graph_ae, gcn_ae
 from external_models.graph_nn import KLWarmupCallback
 from utils.preprocessing import normalized_adjacency, make_adjacencies
 import argparse
@@ -18,7 +18,7 @@ Example usage: python train.py --model=graph --signals="./signals/*" --dataset="
 
 '''
 
-model_names = {"cnn": conv_ae, "garnet": garnet_ae, "garnet2": garnet_ae2, "graph": graph_ae, "gcn": gcn_ae}
+model_names = {"cnn": conv_ae, "garnet": garnet_ae, "graph": graph_ae, "gcn": gcn_ae}
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--model", help="Model choice for training", type=str, choices=model_names.keys(), default="cnn")
@@ -74,6 +74,9 @@ def train(model, signals, dataset, outdir, latent_dim=8, quant_size=0, pruning=F
 
     else:
         if ae_model == garnet_ae:
+            x_train[::,2] = x_train[::,2]/500
+            x_test[::,2] = x_test[::,2]/500
+            y_train = x_train
             X_train = (x_train, np.ones((x_train.shape[0], 1))*x_train.shape[0])
             X_test = (x_test, np.ones((x_test.shape[0], 1))*x_test.shape[0])
 

@@ -141,35 +141,9 @@ def garnet_ae(size=0, latent_dim=8, quant_size=0, pruning=False):
     inputs = [x, n]
 
     # model definition
-    x = BatchNormalization()(x)
     encoder = GarNet(4, 16, 8, simplified=True, collapse='mean', input_format='xn',
                output_activation='relu', name='garnet_encoder', quantize_transforms=False)([x, n])
     encoder = Reshape((16,1))(encoder)
-
-    decoder = GarNet(4, 16*3, 8, simplified=True, collapse='mean', input_format='xn',
-                 output_activation='relu', name='garnet_decoder', quantize_transforms=False)([encoder, n])
-    decoder = Reshape((16,3))(decoder)
-
-    # build model
-    model = Model(inputs=inputs, outputs=decoder)
-
-    # compile model with adam and mean square error
-    model.compile(optimizer=Adam(lr=1e-3, amsgrad=True), loss="mse")
-    model.summary()
-
-    return model
-
-def garnet_ae2(size=0, latent_dim=8, quant_size=0, pruning=False):
-
-    # model inputs
-    x = Input(shape=(16, 3))
-    n = Input(shape=(1), dtype='uint16')
-    inputs = [x, n]
-
-    # model definition
-    x = BatchNormalization()(x[::,2]) # normalise only pT
-    encoder = GarNet(4, 16, 8, simplified=True, collapse='mean', input_format='xn',
-               output_activation='relu', name='garnet_encoder', quantize_transforms=False)([x, n])
 
     decoder = GarNet(4, 16*3, 8, simplified=True, collapse='mean', input_format='xn',
                  output_activation='relu', name='garnet_decoder', quantize_transforms=False)([encoder, n])
