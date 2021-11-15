@@ -7,7 +7,7 @@ from pathlib import Path
 from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
 import tensorflow_model_optimization as tfmot
 from sklearn.preprocessing import MinMaxScaler
-from models import conv_ae, garnet_ae, graph_ae, gcn_ae
+from models import conv_ae, garnet_ae, garnet_ae2, graph_ae, gcn_ae
 from external_models.graph_nn import KLWarmupCallback
 from utils.preprocessing import normalized_adjacency, make_adjacencies
 import argparse
@@ -18,7 +18,7 @@ Example usage: python train.py --model=graph --signals="./signals/*" --dataset="
 
 '''
 
-model_names = {"cnn": conv_ae, "garnet": garnet_ae, "graph": graph_ae, "gcn": gcn_ae}
+model_names = {"cnn": conv_ae, "garnet": garnet_ae, "garnet2": garnet_ae2, "graph": graph_ae, "gcn": gcn_ae}
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--model", help="Model choice for training", type=str, choices=model_names.keys(), default="cnn")
