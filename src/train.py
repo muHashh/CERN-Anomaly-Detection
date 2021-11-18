@@ -74,9 +74,6 @@ def train(model, signals, dataset, outdir, latent_dim=8, quant_size=0, pruning=F
 
     else:
         if ae_model == garnet_ae:
-            x_train[::,2] = x_train[::,2]/500
-            x_test[::,2] = x_test[::,2]/500
-            y_train = x_train
             X_train = (x_train, np.ones((x_train.shape[0], 1))*x_train.shape[0])
             X_test = (x_test, np.ones((x_test.shape[0], 1))*x_test.shape[0])
 
