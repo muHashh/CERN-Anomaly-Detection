@@ -14,7 +14,7 @@ Ensure the required packages are installed:
 Then process the data
 
 ```
-python create_datasets.py --qcd=../../data/bkg_3mln.h5 --signals=../../data/sig* --qcd_out=./dataset/ --signals_out=./signals/
+python create_datasets.py --qcd=../../data/bkg_3mln.h5 --signals="../../data/sig*" --qcd_out=./dataset/ --signals_out=./signals/
 ```
 
 The dataset will be stored in `dataset` and and the processed signal data in `signals` as HDF5 files.
@@ -22,7 +22,7 @@ The dataset will be stored in `dataset` and and the processed signal data in `si
 From there you can start the training
 
 ```
-python train.py --model=graph --signal=./signal/* --dataset=./datasetdatset.h5 --outdir=./output/graph --quant_size=0 --pruning=False --latent_dim=8
+python train.py --model=graph --signal=./signal --dataset=./dataset --out=./output/graph --quant_size=0 --pruning=False --latent_dim=8
 ```
 
 This is just an example command, you can learn more about the options by entering

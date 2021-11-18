@@ -14,7 +14,7 @@ import argparse
 
 '''
 
-Example usage: python train.py --model=graph --signals="./signals/*" --dataset="./dataset/datset.h5" --outdir="./output/graph" --quant_size=0 --pruning=False --latent_dim=8 --device 0
+Example usage: python train.py --model=graph --signals="./signals" --dataset="./dataset" --out="./output/graph" --quant_size=0 --pruning=False --latent_dim=8 --device 0
 
 '''
 
@@ -24,7 +24,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--model", help="Model choice for training", type=str, choices=model_names.keys(), default="cnn")
 parser.add_argument("--signals", help="Where the signals are loacted (HDF5 format)", type=str, default="./signals/*")
 parser.add_argument("--dataset", help="Where the dataset is located (HDF5 format)", type=str, default="./dataset/dataset.h5")
-parser.add_argument("--outdir", help="Location of model output", type=str, default="./output/cnn")
+parser.add_argument("--out", help="Location of model output", type=str, default="./output/cnn")
 parser.add_argument("--quant_size", help="Size of quantisation on model", type=int, default=0)
 parser.add_argument("--pruning", help="Whether pruning is enabled or not", type=bool, default=False)
 parser.add_argument("--latent_dim", help="Size of the latent space dimension", type=int, default=8)
@@ -32,13 +32,13 @@ parser.add_argument("--device", help="CUDA device for training", type=int, defau
 args = parser.parse_args()
 
 
-def train(model, signals, dataset, outdir, latent_dim=8, quant_size=0, pruning=False, device=0):
+def train(model, signals, dataset, out, latent_dim=8, quant_size=0, pruning=False, device=0):
 
     ae_model = model_names[model]
 
     # check for output directory
-    if not os.path.exists(outdir):
-        os.makedirs(outdir)
+    if not os.path.exists(out):
+        os.makedirs(out)
 
     # GPU config
     os.environ["CUDA_VISIBLE_DEVICES"] = str(device)
@@ -48,7 +48,7 @@ def train(model, signals, dataset, outdir, latent_dim=8, quant_size=0, pruning=F
     tf.config.experimental.set_memory_growth(physical_devices[0], True)
 
     # load dataset
-    dataset = h5py.File(dataset, "r")
+    dataset = h5py.File(dataset+"/dataset.h5", "r")
     X_train = x_train = dataset["x_train"][()]
     X_test = x_test = dataset["x_test"][()]
     y_train = dataset["y_train"][()]
@@ -97,7 +97,7 @@ def train(model, signals, dataset, outdir, latent_dim=8, quant_size=0, pruning=F
     pred = model.predict(X_test)
 
     # save the model
-    output = h5py.File(outdir + "/output.h5", 'w')
+    output = h5py.File(out + "/output.h5", 'w')
     output.create_dataset('val_loss', data=hist.history['val_loss'])
     output.create_dataset('QCD', data=x_test)
 
@@ -106,25 +106,22 @@ def train(model, signals, dataset, outdir, latent_dim=8, quant_size=0, pruning=F
         output.create_dataset('loss', data=hist.history['loss'])
 
         modelJson = model.to_json()
-        with open(outdir + "/savedModel.json", "w") as f:
+        with open(out + "/savedModel.json", "w") as f:
             f.write(modelJson)
-        model.save_weights(outdir + "/savedWeights.h5")
+        model.save_weights(out + "/savedWeights.h5")
     else:
         output.create_dataset('predicted_QCD', data=pred[0])
 
-    for signal in glob.glob(signals):
+    for signal in glob.glob(signals+"/*"):
         signal_jets = h5py.File(signal, 'r')["jetConstituentsList"][()]
 
         if ae_model == garnet_ae:
-            signal_jets = (signal_jets, np.ones(
-                (signal_jets.shape[0], 1))*latent_dim)
+            signal_jets = (signal_jets, np.ones((signal_jets.shape[0], 1))*latent_dim)
         elif ae_model in [graph_ae, gcn_ae]:
-            signal_jets = (signal_jets, normalized_adjacency(
-                make_adjacencies(signal_jets)))
+            signal_jets = (signal_jets, normalized_adjacency(make_adjacencies(signal_jets)))
 
         pred_anomaly = model.predict(signal_jets)
-        output.create_dataset(
-            'predicted_'+Path(signal).stem, data=pred_anomaly)
+        output.create_dataset('predicted_'+Path(signal).stem, data=pred_anomaly)
 
 
 if __name__ == "__main__":
