@@ -30,9 +30,9 @@ def create_dataset(bg_loc, outdir):
     # retrieve dataset from h5 file
     h5file = h5py.File(bg_loc, 'r')
     data = h5file["jetConstituentsList"][()]
-    data[:,:,0] = MinMaxScaler(feature_range=(-100, 100)).fit_transform(data[:,:,0]) # eta
-    data[:,:,1] = MinMaxScaler(feature_range=(-100, 100)).fit_transform(data[:,:,1]) # phi
-    data[:,:,2] = MinMaxScaler(feature_range=(-100, 100)).fit_transform(data[:,:,2]) # pT
+    data[:,:,0] = MinMaxScaler(feature_range=(10, 100)).fit_transform(data[:,:,0]) # eta
+    data[:,:,1] = MinMaxScaler(feature_range=(0, 100)).fit_transform(data[:,:,1]) # phi
+    data[:,:,2] = MinMaxScaler(feature_range=(0, 100)).fit_transform(data[:,:,2]) # pT
     target = np.copy(data)
 
     h5file.close()
@@ -60,14 +60,15 @@ def normalise_signals(signals_loc, outdir):
 
     for signal_loc in glob.glob(signals_loc):
         jets = h5py.File(signal_loc, 'r')["jetConstituentsList"][()]
-        jets[:,:,0] = MinMaxScaler(feature_range=(-100, 100)).fit_transform(jets[:,:,0]) # eta
-        jets[:,:,1] = MinMaxScaler(feature_range=(-100, 100)).fit_transform(jets[:,:,1]) # phi
-        jets[:,:,2] = MinMaxScaler(feature_range=(-100, 100)).fit_transform(jets[:,:,2]) # pT
+        jets[:,:,0] = MinMaxScaler(feature_range=(0, 100)).fit_transform(jets[:,:,0]) # eta
+        jets[:,:,1] = MinMaxScaler(feature_range=(0, 100)).fit_transform(jets[:,:,1]) # phi
+        jets[:,:,2] = MinMaxScaler(feature_range=(0, 100)).fit_transform(jets[:,:,2]) # pT
 
         jets = jets.reshape(jets.shape[0], jets.shape[1], jets.shape[2], 1)
 
         output = h5py.File(outdir + Path(signal_loc).stem + "_MinMax_scaled.h5", 'w')
         output.create_dataset("jetConstituentsList", data=jets)
+        output.close()
 
 
 if __name__ == "__main__":
