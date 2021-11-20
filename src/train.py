@@ -22,8 +22,8 @@ model_names = {"cnn": conv_ae, "garnet": garnet_ae, "graph": graph_ae, "gcn": gc
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--model", help="Model choice for training", type=str, choices=model_names.keys(), default="cnn")
-parser.add_argument("--signals", help="Where the signals are loacted (HDF5 format)", type=str, default="./signals/*")
-parser.add_argument("--dataset", help="Where the dataset is located (HDF5 format)", type=str, default="./dataset/dataset.h5")
+parser.add_argument("--signals", help="Where the signals are loacted (HDF5 format)", type=str, default="./signals")
+parser.add_argument("--dataset", help="Where the dataset is located (HDF5 format)", type=str, default="./dataset")
 parser.add_argument("--out", help="Location of model output", type=str, default="./output/cnn")
 parser.add_argument("--quant_size", help="Size of quantisation on model", type=int, default=0)
 parser.add_argument("--pruning", help="Whether pruning is enabled or not", type=bool, default=False)
@@ -74,14 +74,19 @@ def train(model, signals, dataset, out, latent_dim=8, quant_size=0, pruning=Fals
 
     else:
         if ae_model == garnet_ae:
-            X_train = (x_train, np.ones((x_train.shape[0], 1))*x_train.shape[0])
-            X_test = (x_test, np.ones((x_test.shape[0], 1))*x_test.shape[0])
+            x_train = x_train + y_train
+            y_train = x_train
+            x_test = x_test + y_test
+            y_test = x_test
+
+            X_train = (x_train, np.ones((x_train.shape[0], 1))*x_train.shape[1])
+            X_test = (x_test, np.ones((x_test.shape[0], 1))*x_test.shape[1])
 
         model = ae_model(quant_size=quant_size, pruning=pruning,
                          size=x_train.shape[0]+x_test.shape[0], latent_dim=latent_dim)
 
     # begin training
-    batch_size = 1024
+    batch_size = 128
     n_epochs = 200
 
     hist = model.fit(
@@ -105,10 +110,7 @@ def train(model, signals, dataset, out, latent_dim=8, quant_size=0, pruning=Fals
         output.create_dataset('predicted_QCD', data=pred)
         output.create_dataset('loss', data=hist.history['loss'])
 
-        modelJson = model.to_json()
-        with open(out + "/savedModel.json", "w") as f:
-            f.write(modelJson)
-        model.save_weights(out + "/savedWeights.h5")
+        model.save(out + "/model.h5")
     else:
         output.create_dataset('predicted_QCD', data=pred[0])
 
@@ -116,7 +118,7 @@ def train(model, signals, dataset, out, latent_dim=8, quant_size=0, pruning=Fals
         signal_jets = h5py.File(signal, 'r')["jetConstituentsList"][()]
 
         if ae_model == garnet_ae:
-            signal_jets = (signal_jets, np.ones((signal_jets.shape[0], 1))*latent_dim)
+            signal_jets = (signal_jets, np.ones((signal_jets.shape[0], 1))*signal_jets.shape[1])
         elif ae_model in [graph_ae, gcn_ae]:
             signal_jets = (signal_jets, normalized_adjacency(make_adjacencies(signal_jets)))
 
