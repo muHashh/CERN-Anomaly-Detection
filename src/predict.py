@@ -10,7 +10,7 @@ from external_models.garnet import GarNet
 
 '''
 
-This should only be used to predict on different datasets, at the predictions are already created when the training occurs
+This should only be used to predict on different datasets with already trained models, as the predictions are already created when the training occurs
 
 '''
 
