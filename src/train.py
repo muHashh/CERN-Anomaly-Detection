@@ -74,11 +74,6 @@ def train(model, signals, dataset, out, latent_dim=8, quant_size=0, pruning=Fals
 
     else:
         if ae_model == garnet_ae:
-            x_train = x_train + y_train
-            y_train = x_train
-            x_test = x_test + y_test
-            y_test = x_test
-
             X_train = (x_train, np.ones((x_train.shape[0], 1))*x_train.shape[1])
             X_test = (x_test, np.ones((x_test.shape[0], 1))*x_test.shape[1])
 
@@ -86,7 +81,7 @@ def train(model, signals, dataset, out, latent_dim=8, quant_size=0, pruning=Fals
                          size=x_train.shape[0]+x_test.shape[0], latent_dim=latent_dim)
 
     # begin training
-    batch_size = 128
+    batch_size = 1024
     n_epochs = 200
 
     hist = model.fit(

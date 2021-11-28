@@ -36,9 +36,9 @@ def create_dataset(bg_loc, outdir, scale):
     if scale:
         data[:,:,0] = MinMaxScaler(feature_range=(0, 100)).fit_transform(data[:,:,0]) # eta
         data[:,:,1] = MinMaxScaler(feature_range=(0, 100)).fit_transform(data[:,:,1]) # phi
-        data[:,:,2] = MinMaxScaler(feature_range=(0, 100)).fit_transform(data[:,:,2]) # pT
+        # data[:,:,2] = MinMaxScaler(feature_range=(0, 100)).fit_transform(data[:,:,2]) # pT
     else:
-        data[:,:,2] = data[:,:,2]/1600
+        data[:,:,2] = data[:,:,2]/max(data[:,:,2])
 
     target = np.copy(data)
 
@@ -70,11 +70,11 @@ def scale_signals(signals_loc, outdir, scale):
         if scale:
             jets[:,:,0] = MinMaxScaler(feature_range=(0, 100)).fit_transform(jets[:,:,0]) # eta
             jets[:,:,1] = MinMaxScaler(feature_range=(0, 100)).fit_transform(jets[:,:,1]) # phi
-            jets[:,:,2] = MinMaxScaler(feature_range=(0, 100)).fit_transform(jets[:,:,2]) # pT
-            extension = "_MinMax_scaled.h5"
+            # jets[:,:,2] = MinMaxScaler(feature_range=(0, 100)).fit_transform(jets[:,:,2]) # pT
+            extension = "_scaled.h5"
         else:
-            jets[:,:,2] = jets[:,:,2]/1600
-            extension = ""
+            jets[:,:,2] = jets[:,:,2]/max(jets[:,:,2])
+            extension = ".h5"
 
 
         jets = jets.reshape(jets.shape[0], jets.shape[1], jets.shape[2], 1)

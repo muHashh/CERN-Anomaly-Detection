@@ -142,7 +142,7 @@ def garnet_ae(size=0, latent_dim=8, quant_size=0, pruning=False):
 
     # model definition
     encoder = GarNet(4, 16, 8, simplified=True, collapse='mean', input_format='xn',
-               output_activation='relu', name='garnet_encoder', quantize_transforms=False)([x, n])
+               output_activation='linear', name='garnet_encoder', quantize_transforms=False)([x, n])
     encoder = Reshape((16,1))(encoder)
 
     decoder = GarNet(4, 16*3, 8, simplified=True, collapse='mean', input_format='xn',
