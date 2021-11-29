@@ -138,11 +138,11 @@ def garnet_ae(size=0, latent_dim=8, quant_size=0, pruning=False):
     # model inputs
     x = Input(shape=(16, 3))
     n = Input(shape=(1), dtype='uint16')
-    inputs = [x, n]
+    inputs = [BatchNormalization()(x), n]
 
     # model definition
     encoder = GarNet(4, 16, 8, simplified=True, collapse='mean', input_format='xn',
-               output_activation='linear', name='garnet_encoder', quantize_transforms=False)([x, n])
+               output_activation='linear', name='garnet_encoder', quantize_transforms=False)(inputs)
     encoder = Reshape((16,1))(encoder)
 
     decoder = GarNet(4, 16*3, 8, simplified=True, collapse='mean', input_format='xn',
@@ -150,7 +150,7 @@ def garnet_ae(size=0, latent_dim=8, quant_size=0, pruning=False):
     decoder = Reshape((16,3))(decoder)
 
     # build model
-    model = Model(inputs=inputs, outputs=decoder)
+    model = Model(inputs=[x, n], outputs=decoder)
 
     # compile model with adam and mean square error
     model.compile(optimizer=Adam(lr=1e-3, amsgrad=True), loss="mse")
