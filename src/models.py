@@ -141,19 +141,25 @@ def garnet_ae(size=0, latent_dim=8, quant_size=0, pruning=False):
     inputs = [x, n]
 
     # model definition
-    encoder = GarNet(16, 16, 2, simplified=True, collapse='mean', input_format='xn',
-               output_activation='linear', name='garnet_encoder', quantize_transforms=False)(inputs)
+    encoder = GarNet(16, 16*2, 2, simplified=True, collapse='mean', input_format='xn',
+               output_activation='linear', name='garnet_encoder1', quantize_transforms=False)(inputs)
+    encoder = Reshape((16,2))(encoder)
+    encoder = GarNet(16, 16, 1, simplified=True, collapse='mean', input_format='xn',
+               output_activation='linear', name='garnet_encoder2', quantize_transforms=False)([encoder, n])
     encoder = Reshape((16,1))(encoder)
 
-    decoder = GarNet(16, 16, 1, simplified=True, collapse='mean', input_format='xn',
-                 output_activation='linear', name='garnet_decoder', quantize_transforms=False)([encoder, n])
+    decoder = GarNet(16, 16*2, 1, simplified=True, collapse='mean', input_format='xn',
+                 output_activation='linear', name='garnet_decoder1', quantize_transforms=False)([encoder, n])
+    decoder = Reshape((16,2))(decoder)
+    decoder = GarNet(16, 16*3, 2, simplified=True, collapse='mean', input_format='xn',
+                 output_activation='linear', name='garnet_decoder2', quantize_transforms=False)([decoder, n])
     decoder = Reshape((16,3))(decoder)
 
     # build model
     model = Model(inputs=[x, n], outputs=decoder)
 
     # compile model with adam and mean square error
-    model.compile(optimizer=Adam(lr=1e-3, amsgrad=True), loss="mse")
+    model.compile(optimizer=Adam(lr=1e-4, amsgrad=True), loss="mse")
     model.summary()
 
     return model

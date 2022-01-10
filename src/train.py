@@ -56,9 +56,9 @@ def train(model, signals, dataset, out, latent_dim=8, quant_size=0, pruning=Fals
 
     # define callbacks
     callbacks = [
-        # EarlyStopping(monitor='val_loss', patience=10, verbose=1),
-        # ReduceLROnPlateau(monitor='val_loss', factor=0.1,
-        #                   patience=2, verbose=1),
+        EarlyStopping(monitor='val_loss', patience=10, verbose=1),
+        ReduceLROnPlateau(monitor='val_loss', factor=0.1,
+                          patience=2, verbose=1),
     ]
 
     if pruning:
@@ -82,7 +82,7 @@ def train(model, signals, dataset, out, latent_dim=8, quant_size=0, pruning=Fals
 
     # begin training
     batch_size = 1024
-    n_epochs = 200
+    n_epochs = 60
 
     hist = model.fit(
         x=X_train,
