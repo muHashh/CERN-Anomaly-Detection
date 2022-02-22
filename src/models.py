@@ -4,7 +4,7 @@ from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.models import Model
 from qkeras import QConv2D, QDense, QActivation
 import tensorflow_model_optimization as tfmot
-from external_models.garnet_hlsver import GarNet
+from external_models.garnet_old import GarNet
 import external_models.graph_nn as graph
 import tensorflow as tf
 from tensorflow.keras.layers import (
