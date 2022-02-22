@@ -4,7 +4,7 @@ from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.models import Model
 from qkeras import QConv2D, QDense, QActivation
 import tensorflow_model_optimization as tfmot
-from external_models.garnet import GarNet
+from external_models.garnet_hlsver import GarNet
 import external_models.graph_nn as graph
 import tensorflow as tf
 from tensorflow.keras.layers import (
@@ -17,7 +17,7 @@ from tensorflow.keras.layers import (
     BatchNormalization,
     Flatten,
     Activation,
-
+    LeakyReLU
 )
 
 # number of integer bits for each bit width
@@ -154,6 +154,7 @@ def garnet_ae(size=0, latent_dim=8, quant_size=0, pruning=False):
     decoder = GarNet(16, 16*3, 2, simplified=True, collapse='mean', input_format='xn',
                  output_activation='linear', name='garnet_decoder2', quantize_transforms=False)([decoder, n])
     decoder = Reshape((16,3))(decoder)
+    # decoder = tf.reshape(decoder, (tf.shape(decoder)[0],) + (16, 3))
 
     # build model
     model = Model(inputs=[x, n], outputs=decoder)
