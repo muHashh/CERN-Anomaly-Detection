@@ -15,20 +15,25 @@ import os
 
 os.environ["PATH"] = "/mnt/data/tools/Xilinx/Vivado/2020.1/bin:" + os.environ["PATH"]
 
-model = load_model("./output/garnet_2_layers-2/model.h5", custom_objects={'GarNet': GarNet})
+model = load_model("./output/garnet_2_layers-2/model.h5", custom_objects={"GarNet": GarNet})
 
 
-# config = hls4ml.utils.config_from_keras_model(model, granularity='model')
+config = hls4ml.utils.config_from_keras_model(model, granularity="model")
 # np.save("config.npy", config)
 
-config = np.load("config.npy", allow_pickle='TRUE').item()
+# config = np.load("config.npy", allow_pickle='TRUE').item()
 
 print("-----------------------------------")
 print("Configuration")
 print("-----------------------------------")
 
-out = "hls_out"
-hls_model = hls4ml.converters.convert_from_keras_model(model, hls_config=config, output_dir=out)
+out = "hls_out2"
+hls_model = hls4ml.converters.convert_from_keras_model(model, 
+                                                       hls_config=config,
+                                                       output_dir=out,
+                                                       io_type="io_parallel",
+                                                       part="xcvu9p-flgb2104-2-e",
+                                                       backend="VivadoAccelerator",)
 
 # f = open("convert.obj", "wb")
 # pickle.dump(hls_model, f)
@@ -49,7 +54,7 @@ hls_model.compile()
 
 
 hls_model.build(csim=False, synth=True, vsynth=True)
-hls4ml.templates.VivadoAcceleratorBackend.make_bitfile(hls_model)
+# hls4ml.templates.VivadoAcceleratorBackend.make_bitfile(hls_model)
 
 hls4ml.report.read_vivado_report(out)
 
