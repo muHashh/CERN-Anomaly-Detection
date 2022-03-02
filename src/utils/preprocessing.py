@@ -51,7 +51,6 @@ def normalize_features_jet_based(particles, feats):
                 np.max(particles[:, :, idx])-np.min(particles[:, :, idx]))
     return particles
 
-
 def normalize_features_event_based(particles):
     idx_px, idx_py, idx_pz, idx_pt, idx_eta, idx_phi = range(6)
     # min-max normalize pt
@@ -59,6 +58,22 @@ def normalize_features_event_based(particles):
     # standard normalize angles and cartesians
     for idx in (idx_px, idx_py, idx_pz, idx_eta, idx_phi):
         particles[:, :, idx] = std_norm(particles, idx)
+    return particles
+
+def normalize_features(particles):
+    
+    def transform_min_max(x):
+        return (x-np.min(x))/(np.max(x)-np.min(x))
+
+    def transform_mean_std(x):
+        return (x-np.mean(x))/(3*np.std(x))
+
+    idx_eta, idx_phi, idx_pt = range(3)
+    # min-max normalize pt
+    particles[:,:,idx_pt] = transform_min_max(particles[:,:,idx_pt])
+    # standard normalize angles
+    particles[:,:,idx_eta] = transform_mean_std(particles[:,:,idx_eta])
+    particles[:,:,idx_phi] = transform_mean_std(particles[:,:,idx_phi])
     return particles
 
 

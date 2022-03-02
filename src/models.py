@@ -34,6 +34,38 @@ QUANT_INT = {
 }
 
 
+"""
+
+Custom loss functions
+
+"""
+
+def mse_loss(inputs, outputs):
+    return tf.math.reduce_mean(tf.math.square(outputs-inputs), axis=-1)
+
+def make_mse(inputs, outputs):
+
+    inputs = tf.cast(inputs, dtype=tf.float32)
+
+    # trick with phi
+    outputs[:,:,1].value = np.pi*tf.math.tanh(outputs[:,:,1])
+    # trick with phi
+    outputs[:,:,0].value = 4.0*tf.math.tanh(outputs[:,:,0])
+
+    # use both tricks
+    # outputs = tf.concat([outputs_eta[:,:,0], outputs_phi[:,:,1], outputs[:,:,2]], axis=1)
+    # outputs = tf.reshape(outputs, (tf.shape(outputs)[0],) + (16, 3))
+    
+    # mask zero features
+    mask = tf.math.not_equal(inputs,0)
+    mask = tf.cast(mask, tf.float32)
+    outputs = mask * outputs
+
+    loss = mse_loss(inputs, outputs)
+    loss = tf.math.reduce_mean(loss, axis=0) # average over batch
+    return loss
+
+
 def chamfer_loss(inputs, outputs):  # [batch_size x 100 x 3] -> [batch_size]
     # add broadcasting dim [batch_size x 100 x 1 x 3]
     expand_inputs = tf.expand_dims(inputs, 2)
@@ -47,6 +79,13 @@ def chamfer_loss(inputs, outputs):  # [batch_size x 100 x 3] -> [batch_size]
     min_dist_to_outputs = tf.math.reduce_min(distances, 2)
     return tf.math.reduce_mean(min_dist_to_inputs, 1) + tf.math.reduce_mean(min_dist_to_outputs, 1)
 
+
+
+"""
+
+Models 
+
+"""
 
 def conv_ae(size=0, latent_dim=8, quant_size=0, pruning=False):
 
@@ -135,6 +174,8 @@ def conv_ae(size=0, latent_dim=8, quant_size=0, pruning=False):
 
 def garnet_ae(size=0, latent_dim=8, quant_size=0, pruning=False):
 
+    int_size = QUANT_INT[quant_size]
+
     # model inputs
     x = Input(shape=(16, 3))
     n = Input(shape=(1), dtype='uint16')
@@ -142,17 +183,28 @@ def garnet_ae(size=0, latent_dim=8, quant_size=0, pruning=False):
 
     # model definition
     encoder = GarNet(16, 16*2, 2, simplified=True, collapse='mean', input_format='xn',
-               output_activation='linear', name='garnet_encoder1', quantize_transforms=False)(inputs)
+               output_activation='linear', name='garnet_encoder1', quantize_transforms=False)(inputs) if quant_size <= 0 \
+                   else GarNet(16, 16*2, 2, simplified=True, collapse='mean', input_format='xn',
+                            output_activation='linear', name='garnet_encoder1', quantize_transforms=True, total_bits=quant_size, int_bits=int_size)(inputs)
     encoder = Reshape((16,2))(encoder)
+    # encoder = tf.reshape(encoder, (tf.shape(encoder)[0],) + (16, 2))
     encoder = GarNet(16, 16, 1, simplified=True, collapse='mean', input_format='xn',
-               output_activation='linear', name='garnet_encoder2', quantize_transforms=False)([encoder, n])
+               output_activation='linear', name='garnet_encoder2', quantize_transforms=False)([encoder, n]) if quant_size <= 0 \
+                   else GarNet(16, 16, 1, simplified=True, collapse='mean', input_format='xn',
+                            output_activation='linear', name='garnet_encoder2', quantize_transforms=True, total_bits=quant_size, int_bits=int_size)([encoder, n])
     encoder = Reshape((16,1))(encoder)
+    # encoder = tf.reshape(encoder, (tf.shape(encoder)[0],) + (16, 1))
 
     decoder = GarNet(16, 16*2, 1, simplified=True, collapse='mean', input_format='xn',
-                 output_activation='linear', name='garnet_decoder1', quantize_transforms=False)([encoder, n])
+               output_activation='linear', name='garnet_decoder1', quantize_transforms=False)([encoder, n]) if quant_size <= 0 \
+                   else GarNet(16, 16*2, 1, simplified=True, collapse='mean', input_format='xn',
+                            output_activation='linear', name='garnet_decoder1', quantize_transforms=True, total_bits=quant_size, int_bits=int_size)([encoder, n])
     decoder = Reshape((16,2))(decoder)
+    # decoder = tf.reshape(decoder, (tf.shape(decoder)[0],) + (16, 2))
     decoder = GarNet(16, 16*3, 2, simplified=True, collapse='mean', input_format='xn',
-                 output_activation='linear', name='garnet_decoder2', quantize_transforms=False)([decoder, n])
+               output_activation='linear', name='garnet_decoder2', quantize_transforms=False)([decoder, n]) if quant_size <= 0 \
+                   else GarNet(16, 16*3, 2, simplified=True, collapse='mean', input_format='xn',
+                            output_activation='linear', name='garnet_decoder2', quantize_transforms=True, total_bits=quant_size, int_bits=int_size)([decoder, n])
     decoder = Reshape((16,3))(decoder)
     # decoder = tf.reshape(decoder, (tf.shape(decoder)[0],) + (16, 3))
 
@@ -160,7 +212,7 @@ def garnet_ae(size=0, latent_dim=8, quant_size=0, pruning=False):
     model = Model(inputs=[x, n], outputs=decoder)
 
     # compile model with adam and mean square error
-    model.compile(optimizer=Adam(lr=1e-4, amsgrad=True), loss="mse")
+    model.compile(optimizer=Adam(lr=1e-4, amsgrad=True), loss=make_mse)
     model.summary()
 
     return model

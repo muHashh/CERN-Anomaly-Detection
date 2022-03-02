@@ -7,9 +7,9 @@ from pathlib import Path
 from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
 import tensorflow_model_optimization as tfmot
 from sklearn.preprocessing import MinMaxScaler
-from models import conv_ae, garnet_ae, graph_ae, gcn_ae
+from models import conv_ae, garnet_ae, gcn_ae, graph_ae
 from external_models.graph_nn import KLWarmupCallback
-from utils.preprocessing import normalized_adjacency, make_adjacencies
+from utils.preprocessing import *
 import argparse
 
 '''
@@ -18,7 +18,13 @@ Example usage: python train.py --model=graph --signals="./signals" --dataset="./
 
 '''
 
-model_names = {"cnn": conv_ae, "garnet": garnet_ae, "graph": graph_ae, "gcn": gcn_ae}
+model_names = {
+                "cnn": conv_ae, 
+                "garnet": garnet_ae, 
+                "gcn": gcn_ae, 
+                "graph": graph_ae,
+                }
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--model", help="Model choice for training", type=str, choices=model_names.keys(), default="cnn")
@@ -42,10 +48,10 @@ def train(model, signals, dataset, out, latent_dim=8, quant_size=0, pruning=Fals
 
     # GPU config
     os.environ["CUDA_VISIBLE_DEVICES"] = str(device)
-    physical_devices = tf.config.experimental.list_physical_devices('GPU')
+    physical_devices = tf.config.list_physical_devices("GPU")
     print(physical_devices)
     assert len(physical_devices) > 0, "Not enough GPU hardware devices available"
-    tf.config.experimental.set_memory_growth(physical_devices[0], True)
+    tf.config.experimental.set_memory_growth(physical_devices[0], enable=True)
 
     # load dataset
     dataset = h5py.File(dataset+"/dataset.h5", "r")
@@ -65,12 +71,17 @@ def train(model, signals, dataset, out, latent_dim=8, quant_size=0, pruning=Fals
         callbacks.append(tfmot.sparsity.keras.UpdatePruningStep())
 
     # get the autoencoder
-    if ae_model == graph_ae:
-        model = ae_model(x_test.shape[1], x_test.shape[2])
-        A_train = y_train = make_adjacencies(x_train)
-        A_test = y_test = make_adjacencies(x_test)
-        X_train = (x_train, normalized_adjacency(A_train))
-        X_test = (x_test, normalized_adjacency(A_test))
+    if ae_model in {gcn_ae}:
+        x_train += y_train
+        x_test += y_test
+        
+        particles_bg = normalize_features(x_train)
+        A_tilde_bg = normalized_adjacency(make_adjacencies(x_train))
+        particles_bg_test = normalize_features(x_test)
+        A_tilde_bg_test = normalized_adjacency(make_adjacencies(x_test))
+
+
+        model = ae_model(x_train.shape[1], x_train.shape[2])
 
     else:
         if ae_model == garnet_ae:
@@ -82,7 +93,7 @@ def train(model, signals, dataset, out, latent_dim=8, quant_size=0, pruning=Fals
 
     # begin training
     batch_size = 1024
-    n_epochs = 60
+    n_epochs = 50
 
     hist = model.fit(
         x=X_train,
@@ -93,8 +104,14 @@ def train(model, signals, dataset, out, latent_dim=8, quant_size=0, pruning=Fals
         validation_split=0.2,
         callbacks=callbacks)
 
+    print("\nPredicting on the test dataset...")
     # Predictions
-    pred = model.predict(X_test)
+    if model == gcn_ae:
+        pred, z, _, _ = model((particles_bg_test, A_tilde_bg_test))
+    else:
+        pred = model.predict(X_test)
+
+    print("\nDone!", out)  
 
     # save the model
     output = h5py.File(out + "/output.h5", 'w')
@@ -102,6 +119,7 @@ def train(model, signals, dataset, out, latent_dim=8, quant_size=0, pruning=Fals
     output.create_dataset('QCD', data=x_test)
 
     if ae_model != graph_ae:
+
         output.create_dataset('predicted_QCD', data=pred)
         output.create_dataset('loss', data=hist.history['loss'])
 
@@ -109,17 +127,21 @@ def train(model, signals, dataset, out, latent_dim=8, quant_size=0, pruning=Fals
     else:
         output.create_dataset('predicted_QCD', data=pred[0])
 
+    print("\nPredicting on the signals...")
     for signal in glob.glob(signals+"/*"):
         signal_jets = h5py.File(signal, 'r')["jetConstituentsList"][()]
 
         if ae_model == garnet_ae:
             signal_jets = (signal_jets, np.ones((signal_jets.shape[0], 1))*signal_jets.shape[1])
-        elif ae_model in [graph_ae, gcn_ae]:
+        elif ae_model in {graph_ae, gcn_ae}:
             signal_jets = (signal_jets, normalized_adjacency(make_adjacencies(signal_jets)))
 
         pred_anomaly = model.predict(signal_jets)
         output.create_dataset('predicted_'+Path(signal).stem, data=pred_anomaly)
 
+    output.close()
+
+    print("\nDone!")
 
 if __name__ == "__main__":
     train(**vars(args))

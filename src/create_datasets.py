@@ -34,10 +34,12 @@ def create_dataset(bg_loc, outdir, scale):
     h5file = h5py.File(bg_loc, 'r')
     data = h5file["jetConstituentsList"][()]
     if scale:
-        # data[:,:,0] = MinMaxScaler(feature_range=(0, 100)).fit_transform(data[:,:,0]) # eta
-        # data[:,:,1] = MinMaxScaler(feature_range=(0, 100)).fit_transform(data[:,:,1]) # phi
-        # data[:,:,2] = MinMaxScaler(feature_range=(0, 100)).fit_transform(data[:,:,2]) # pT
-        data[:,:,2] = data[:,:,2]/100
+        data[:,:,2] = np.log(data[:,:,2]) # pT
+        # data[:,:,0] = MinMaxScaler(feature_range=(0, 1)).fit_transform(data[:,:,0]) # eta
+        # data[:,:,1] = MinMaxScaler(feature_range=(0, 1)).fit_transform(data[:,:,1]) # phi
+        data[:,:,2] = MinMaxScaler(feature_range=(-np.pi, np.pi)).fit_transform(data[:,:,2]) # pT
+
+        # data[:,:,2] = data[:,:,2]/100
     # else:
     #     data[:,:,2] = data[:,:,2]/max(data[:,:,2])
 
@@ -60,6 +62,8 @@ def create_dataset(bg_loc, outdir, scale):
     h5f.create_dataset('y_train', data=y_train)
     h5f.create_dataset('y_test', data=y_test)
 
+    h5f.close()
+
 def scale_signals(signals_loc, outdir, scale):
 
     # check for output directory
@@ -69,11 +73,13 @@ def scale_signals(signals_loc, outdir, scale):
     for signal_loc in glob.glob(signals_loc):
         jets = h5py.File(signal_loc, 'r')["jetConstituentsList"][()]
         if scale:
-            # jets[:,:,0] = MinMaxScaler(feature_range=(0, 100)).fit_transform(jets[:,:,0]) # eta
-            # jets[:,:,1] = MinMaxScaler(feature_range=(0, 100)).fit_transform(jets[:,:,1]) # phi
-            # jets[:,:,2] = MinMaxScaler(feature_range=(0, 100)).fit_transform(jets[:,:,2]) # pT
-            jets[:,:,2] = jets[:,:,2]/100
-            extension = "_scaled3.h5"
+            jets[:,:,2] = np.log(jets[:,:,2]) # pT
+            # jets[:,:,0] = MinMaxScaler(feature_range=(0, 1)).fit_transform(jets[:,:,0]) # eta
+            # jets[:,:,1] = MinMaxScaler(feature_range=(0, 1)).fit_transform(jets[:,:,1]) # phi
+            jets[:,:,2] = MinMaxScaler(feature_range=(-np.pi, np.pi)).fit_transform(jets[:,:,2]) # pT
+
+            # jets[:,:,2] = jets[:,:,2]/100
+            extension = "_scaled6.h5"
         else:
             # jets[:,:,2] = jets[:,:,2]/max(jets[:,:,2])
             extension = ".h5"
