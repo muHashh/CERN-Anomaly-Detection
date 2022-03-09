@@ -1,9 +1,14 @@
 src/output*/
 src/dataset*/
-src/plots/.ipynb_checkpoints
+src/*/.ipynb_checkpoints
+src/.ipynb_checkpoints
 src/.vscode
 src/plots/*-*.ipynb 
 src/__pycache__
 src/external_models/__pycache__
 src/signals*/
 src/utils/__pycache__
+src/issue
+src/hls_out*
+src/hls4ml
+src/*.tar*

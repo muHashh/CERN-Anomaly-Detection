@@ -9,23 +9,26 @@ import argparse
 
 '''
 
-Example usage: python create_datasets.py --qcd="../../data/bkg_3mln.h5" --signals="../../data/sig*" --qcd_out="./dataset" --signals_out="./signals" --no-scale
+Example usage: python create_datasets.py --qcd ../../data/bkg_3mln.h5 --signals "../../data/sig*" --qcd_out datasets --signals_out signals --ver 1 --scale
 
 '''
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--qcd", help="Location of background data (HDF5 format)", type=str, default="../../data/bkg_3mln.h5")
 parser.add_argument("--signals", help="Location of signal data (HDF5 format)", type=str, default="../../data/sig*")
-parser.add_argument("--qcd_out", help="Location of processed QCD output directory", type=str, default="./dataset/")
-parser.add_argument("--signals_out", help="Location of processed signals output directory", type=str, default="./signals/")
+parser.add_argument("--qcd_out", help="Location of processed QCD output directory", type=str, default="./datasets")
+parser.add_argument("--signals_out", help="Location of processed signals output directory", type=str, default="./signals")
+parser.add_argument("--ver", help="Version of the dataset", type=str, default="1")
 parser.add_argument('--scale', dest='scale', action='store_true')
 parser.add_argument('--no-scale', dest='scale', action='store_false')
 parser.set_defaults(scale=False)
 args = parser.parse_args()
 
 
-def create_dataset(bg_loc, outdir, scale):
-    
+def create_dataset(bg_loc, outdir, scale, ver):
+
+    outdir = outdir+"/dataset"+ver
+
     # check for output directory
     if not os.path.exists(outdir):
         os.makedirs(outdir)
@@ -37,7 +40,7 @@ def create_dataset(bg_loc, outdir, scale):
         data[:,:,2] = np.log(data[:,:,2]) # pT
         # data[:,:,0] = MinMaxScaler(feature_range=(0, 1)).fit_transform(data[:,:,0]) # eta
         # data[:,:,1] = MinMaxScaler(feature_range=(0, 1)).fit_transform(data[:,:,1]) # phi
-        data[:,:,2] = MinMaxScaler(feature_range=(-np.pi, np.pi)).fit_transform(data[:,:,2]) # pT
+        # data[:,:,2] = MinMaxScaler(feature_range=(-np.pi, np.pi)).fit_transform(data[:,:,2]) # pT
 
         # data[:,:,2] = data[:,:,2]/100
     # else:
@@ -64,7 +67,9 @@ def create_dataset(bg_loc, outdir, scale):
 
     h5f.close()
 
-def scale_signals(signals_loc, outdir, scale):
+def scale_signals(signals_loc, outdir, scale, ver):
+
+    outdir = outdir+"/signals"+ver
 
     # check for output directory
     if not os.path.exists(outdir):
@@ -76,13 +81,13 @@ def scale_signals(signals_loc, outdir, scale):
             jets[:,:,2] = np.log(jets[:,:,2]) # pT
             # jets[:,:,0] = MinMaxScaler(feature_range=(0, 1)).fit_transform(jets[:,:,0]) # eta
             # jets[:,:,1] = MinMaxScaler(feature_range=(0, 1)).fit_transform(jets[:,:,1]) # phi
-            jets[:,:,2] = MinMaxScaler(feature_range=(-np.pi, np.pi)).fit_transform(jets[:,:,2]) # pT
+            # jets[:,:,2] = MinMaxScaler(feature_range=(-np.pi, np.pi)).fit_transform(jets[:,:,2]) # pT
 
             # jets[:,:,2] = jets[:,:,2]/100
-            extension = "_scaled6.h5"
+            extension = "_scaled%s.h5"%ver
         else:
             # jets[:,:,2] = jets[:,:,2]/max(jets[:,:,2])
-            extension = ".h5"
+            extension = "%s.h5"%ver
 
 
         jets = jets.reshape(jets.shape[0], jets.shape[1], jets.shape[2], 1)
@@ -93,5 +98,5 @@ def scale_signals(signals_loc, outdir, scale):
 
 
 if __name__ == "__main__":
-    create_dataset(args.qcd, args.qcd_out, args.scale)
-    scale_signals(args.signals, args.signals_out, args.scale)
+    # create_dataset(args.qcd, args.qcd_out, args.scale, args.ver)
+    scale_signals(args.signals, args.signals_out, args.scale, args.ver)

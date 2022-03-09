@@ -6,8 +6,7 @@ import tensorflow as tf
 from pathlib import Path
 from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
 import tensorflow_model_optimization as tfmot
-from sklearn.preprocessing import MinMaxScaler
-from models import conv_ae, garnet_ae, gcn_ae, graph_ae
+from models import conv_ae, garnet_ae, gcn_vae, graph_ae
 from external_models.graph_nn import KLWarmupCallback
 from utils.preprocessing import *
 import argparse
@@ -21,7 +20,7 @@ Example usage: python train.py --model=graph --signals="./signals" --dataset="./
 model_names = {
                 "cnn": conv_ae, 
                 "garnet": garnet_ae, 
-                "gcn": gcn_ae, 
+                "gcn": gcn_vae, 
                 "graph": graph_ae,
                 }
 
@@ -70,17 +69,17 @@ def train(model, signals, dataset, out, latent_dim=8, quant_size=0, pruning=Fals
     if pruning:
         callbacks.append(tfmot.sparsity.keras.UpdatePruningStep())
 
-    # get the autoencoder
-    if ae_model in {gcn_ae}:
-        x_train += y_train
-        x_test += y_test
+    # get the autoencoder and prepare data
+    if ae_model in {gcn_vae}:
+
+        x_train = np.squeeze(x_train, axis=3)
+        x_test = np.squeeze(x_test, axis=3)
         
         particles_bg = normalize_features(x_train)
         A_tilde_bg = normalized_adjacency(make_adjacencies(x_train))
         particles_bg_test = normalize_features(x_test)
         A_tilde_bg_test = normalized_adjacency(make_adjacencies(x_test))
-
-
+        
         model = ae_model(x_train.shape[1], x_train.shape[2])
 
     else:
@@ -96,8 +95,8 @@ def train(model, signals, dataset, out, latent_dim=8, quant_size=0, pruning=Fals
     n_epochs = 50
 
     hist = model.fit(
-        x=X_train,
-        y=y_train,
+        x=X_train if ae_model is not gcn_vae else particles_bg,
+        y=y_train if ae_model is not gcn_vae else A_tilde_bg,
         epochs=n_epochs,
         batch_size=batch_size,
         verbose=2,
@@ -106,19 +105,25 @@ def train(model, signals, dataset, out, latent_dim=8, quant_size=0, pruning=Fals
 
     print("\nPredicting on the test dataset...")
     # Predictions
-    if model == gcn_ae:
-        pred, z, _, _ = model((particles_bg_test, A_tilde_bg_test))
+    if ae_model == gcn_vae:
+        pred, _, _, _ = model((particles_bg_test, A_tilde_bg_test))
+        pred = pred.numpy().astype('float32')
     else:
         pred = model.predict(X_test)
 
-    print("\nDone!", out)  
+    print("\nDone!")  
 
     # save the model
     output = h5py.File(out + "/output.h5", 'w')
     output.create_dataset('val_loss', data=hist.history['val_loss'])
     output.create_dataset('QCD', data=x_test)
 
-    if ae_model != graph_ae:
+    if ae_model == gcn_vae:
+
+        output.create_dataset('predicted_QCD', data=pred)
+        output.create_dataset('loss', data=hist.history['loss'])
+        
+    elif ae_model != graph_ae:
 
         output.create_dataset('predicted_QCD', data=pred)
         output.create_dataset('loss', data=hist.history['loss'])
@@ -128,20 +133,27 @@ def train(model, signals, dataset, out, latent_dim=8, quant_size=0, pruning=Fals
         output.create_dataset('predicted_QCD', data=pred[0])
 
     print("\nPredicting on the signals...")
+
     for signal in glob.glob(signals+"/*"):
         signal_jets = h5py.File(signal, 'r')["jetConstituentsList"][()]
 
         if ae_model == garnet_ae:
             signal_jets = (signal_jets, np.ones((signal_jets.shape[0], 1))*signal_jets.shape[1])
-        elif ae_model in {graph_ae, gcn_ae}:
-            signal_jets = (signal_jets, normalized_adjacency(make_adjacencies(signal_jets)))
+        elif ae_model in {gcn_vae}:
+            particles_signal = normalize_features(signal_jets)
+            A_tilde_signal = normalized_adjacency(make_adjacencies(signal_jets))
 
-        pred_anomaly = model.predict(signal_jets)
+        if ae_model != gcn_vae:
+            pred_anomaly = model.predict(signal_jets)
+        else:
+            pred_anomaly, _, _, _, = model((particles_signal, A_tilde_signal))
+            pred_anomaly = pred_anomaly.numpy().astype('float32')
+
         output.create_dataset('predicted_'+Path(signal).stem, data=pred_anomaly)
 
     output.close()
 
-    print("\nDone!")
+    print("\nSaved to", out)
 
 if __name__ == "__main__":
     train(**vars(args))

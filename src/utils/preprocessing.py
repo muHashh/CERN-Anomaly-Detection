@@ -78,19 +78,22 @@ def normalize_features(particles):
 
 
 def normalized_adjacency(A):
-    # compute outdegree (= rowsum)
-    D = np.array(np.sum(A, axis=2), dtype=np.float32)
-    D = np.nan_to_num(np.power(D, -0.5), posinf=0,
-                      neginf=0)  # normalize (**-(1/2))
-    D = np.asarray([np.diagflat(dd) for dd in D])  # and diagonalize
+    D = np.array(np.sum(A, axis=2), dtype=np.float32) # compute outdegree (= rowsum)
+    D = np.nan_to_num(np.power(D,-0.5), posinf=0, neginf=0) # normalize (**-(1/2))
+    D = np.asarray([np.diagflat(dd) for dd in D]) # and diagonalize
     return np.matmul(D, np.matmul(A, D))
 
 
-def make_adjacencies(particles, pt_idx=2):
-    # construct mask for real particles
-    real_p_mask = particles[:, :, pt_idx] > 0
-    adjacencies = (real_p_mask * real_p_mask.reshape(
-        real_p_mask.shape[0], real_p_mask.shape[2], real_p_mask.shape[1])).astype('float32')
+# def make_adjacencies(particles, pt_idx=2):
+#     # construct mask for real particles
+#     real_p_mask = particles[:, :, pt_idx] > 0
+#     adjacencies = (real_p_mask * real_p_mask.reshape(
+#         real_p_mask.shape[0], real_p_mask.shape[2], real_p_mask.shape[1])).astype('float32')
+#     return adjacencies
+
+def make_adjacencies(particles):
+    real_p_mask = particles[:,:,0] > 0 # construct mask for real particles
+    adjacencies = (real_p_mask[:,:,np.newaxis] * real_p_mask[:,np.newaxis,:]).astype('float32')
     return adjacencies
 
 
