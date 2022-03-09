@@ -98,5 +98,5 @@ def scale_signals(signals_loc, outdir, scale, ver):
 
 
 if __name__ == "__main__":
-    # create_dataset(args.qcd, args.qcd_out, args.scale, args.ver)
+    create_dataset(args.qcd, args.qcd_out, args.scale, args.ver)
     scale_signals(args.signals, args.signals_out, args.scale, args.ver)
