@@ -40,29 +40,14 @@ Custom loss functions
 
 """
 
-def mse_loss(inputs, outputs):
-    return tf.math.reduce_mean(tf.math.square(outputs-inputs), axis=-1)
-
-def make_mse(inputs, outputs):
+def wrapped_mse(inputs, outputs):
 
     inputs = tf.cast(inputs, dtype=tf.float32)
-
-    # trick with phi
     outputs[:,:,1].value = np.pi*tf.math.tanh(outputs[:,:,1])
-    # trick with phi
-    outputs[:,:,0].value = 4.0*tf.math.tanh(outputs[:,:,0])
+    outputs[:,:,0].value = 3.29*tf.math.tanh(outputs[:,:,0])
+    outputs = tf.cast(outputs, dtype=tf.float32)
 
-    # use both tricks
-    # outputs = tf.concat([outputs_eta[:,:,0], outputs_phi[:,:,1], outputs[:,:,2]], axis=1)
-    # outputs = tf.reshape(outputs, (tf.shape(outputs)[0],) + (16, 3))
-    
-    # mask zero features
-    mask = tf.math.not_equal(inputs,0)
-    mask = tf.cast(mask, tf.float32)
-    outputs = mask * outputs
-
-    loss = mse_loss(inputs, outputs)
-    loss = tf.math.reduce_mean(loss, axis=0) # average over batch
+    loss = tf.keras.losses.MeanSquaredError()(inputs, outputs)
     return loss
 
 
@@ -183,22 +168,22 @@ def garnet_ae(size=0, latent_dim=8, quant_size=0, pruning=False):
 
     # model definition
     encoder = GarNet(16, 16*2, 2, simplified=True, collapse='mean', input_format='xn',
-               output_activation='relu', name='garnet_encoder1', quantize_transforms=False)(inputs) if quant_size <= 0 \
+               output_activation='linear', name='garnet_encoder1', quantize_transforms=False)(inputs) if quant_size <= 0 \
                    else GarNet(16, 16*2, 2, simplified=True, collapse='mean', input_format='xn',
-                            output_activation='relu', name='garnet_encoder1', quantize_transforms=True, total_bits=quant_size, int_bits=int_size)(inputs)
+                            output_activation='linear', name='garnet_encoder1', quantize_transforms=True, total_bits=quant_size, int_bits=int_size)(inputs)
     encoder = Reshape((16,2))(encoder)
     # encoder = tf.reshape(encoder, (tf.shape(encoder)[0],) + (16, 2))
     encoder = GarNet(16, 16, 1, simplified=True, collapse='mean', input_format='xn',
-               output_activation='relu', name='garnet_encoder2', quantize_transforms=False)([encoder, n]) if quant_size <= 0 \
+               output_activation='linear', name='garnet_encoder2', quantize_transforms=False)([encoder, n]) if quant_size <= 0 \
                    else GarNet(16, 16, 1, simplified=True, collapse='mean', input_format='xn',
-                            output_activation='relu', name='garnet_encoder2', quantize_transforms=True, total_bits=quant_size, int_bits=int_size)([encoder, n])
+                            output_activation='linear', name='garnet_encoder2', quantize_transforms=True, total_bits=quant_size, int_bits=int_size)([encoder, n])
     encoder = Reshape((16,1))(encoder)
     # encoder = tf.reshape(encoder, (tf.shape(encoder)[0],) + (16, 1))
 
     decoder = GarNet(16, 16*2, 1, simplified=True, collapse='mean', input_format='xn',
-               output_activation='relu', name='garnet_decoder1', quantize_transforms=False)([encoder, n]) if quant_size <= 0 \
+               output_activation='linear', name='garnet_decoder1', quantize_transforms=False)([encoder, n]) if quant_size <= 0 \
                    else GarNet(16, 16*2, 1, simplified=True, collapse='mean', input_format='xn',
-                            output_activation='relu', name='garnet_decoder1', quantize_transforms=True, total_bits=quant_size, int_bits=int_size)([encoder, n])
+                            output_activation='linear', name='garnet_decoder1', quantize_transforms=True, total_bits=quant_size, int_bits=int_size)([encoder, n])
     decoder = Reshape((16,2))(decoder)
     # decoder = tf.reshape(decoder, (tf.shape(decoder)[0],) + (16, 2))
     decoder = GarNet(16, 16*3, 2, simplified=True, collapse='mean', input_format='xn',
@@ -212,7 +197,7 @@ def garnet_ae(size=0, latent_dim=8, quant_size=0, pruning=False):
     model = Model(inputs=[x, n], outputs=decoder)
 
     # compile model with adam and mean square error
-    model.compile(optimizer=Adam(lr=1e-4, amsgrad=True), loss="mse")
+    model.compile(optimizer=Adam(lr=1e-4, amsgrad=True), loss='mse')
     model.summary()
 
     return model

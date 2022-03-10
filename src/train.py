@@ -91,7 +91,7 @@ def train(model, signals, dataset, out, latent_dim=8, quant_size=0, pruning=Fals
                          size=x_train.shape[0]+x_test.shape[0], latent_dim=latent_dim)
 
     # begin training
-    batch_size = 1024
+    batch_size = 2048
     n_epochs = 50
 
     hist = model.fit(
