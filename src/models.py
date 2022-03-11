@@ -47,6 +47,10 @@ def wrapped_mse(inputs, outputs):
     outputs[:,:,0].value = 3.29*tf.math.tanh(outputs[:,:,0])
     outputs = tf.cast(outputs, dtype=tf.float32)
 
+    mask = tf.math.not_equal(inputs,0)
+    mask = tf.cast(mask, tf.float32)
+    outputs = mask * outputs
+
     loss = tf.keras.losses.MeanSquaredError()(inputs, outputs)
     return loss
 
