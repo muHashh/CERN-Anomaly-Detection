@@ -14,7 +14,7 @@ Ensure the required packages are installed:
 Then process the data
 
 ```
-python create_datasets.py --qcd="../../data/bkg_3mln.h5" --signals="../../data/sig*" --qcd_out="./dataset" --signals_out="./signals" --no-scale
+python create_datasets.py --qcd ../../data/bkg_3mln.h5 --signals "../../data/sig*" --qcd_out datasets --signals_out signals --ver 1 --scale
 ```
 
 Use the `--scale` if you'd like to scale the data.
