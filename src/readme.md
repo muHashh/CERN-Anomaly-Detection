@@ -22,7 +22,7 @@ Use the `--scale` if you'd like to scale the data.
 The dataset will be stored in `dataset` and and the processed signal data in `signals` as HDF5 files. From there you can start the training.
 
 ```
-python train.py --model=graph --signal=./signals --dataset=./dataset --out=./output/graph --quant_size=0 --pruning=False --latent_dim=8
+python python train.py --model garnet --signals signals --dataset= dataset --out output/garnet --quant_size 0 --pruning False --latent_dim 8 --device 0
 ```
 
 This is just an example command, you can learn more about the options by entering
