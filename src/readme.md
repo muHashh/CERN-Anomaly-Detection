@@ -31,4 +31,4 @@ This is just an example command, you can learn more about the options by enterin
 python train.py -h
 ```
 
-The results of training (ROC curves, loss, etc.) can then be viewed in `plots/plot_results.ipynb`.
+The results of training (ROC curves, loss, etc.) can then be viewed in `notebooks/plot_results.ipynb`.
