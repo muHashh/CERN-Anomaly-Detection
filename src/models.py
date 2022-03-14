@@ -167,31 +167,34 @@ def garnet_ae(size=0, latent_dim=8, quant_size=0, pruning=False):
     inputs = [x, n]
 
     # model definition
-    encoder = GarNet(16, 16*2, 2, simplified=True, collapse='mean', input_format='xn',
-               output_activation='linear', name='garnet_encoder1', quantize_transforms=False)(inputs) if quant_size <= 0 \
+    encoder = GarNet(32, 16*2, 16, simplified=True, collapse='mean', input_format='xn',
+               output_activation='relu', name='garnet_encoder1', quantize_transforms=False)(inputs) if quant_size <= 0 \
                    else GarNet(16, 16*2, 2, simplified=True, collapse='mean', input_format='xn',
-                            output_activation='linear', name='garnet_encoder1', quantize_transforms=True, total_bits=quant_size, int_bits=int_size)(inputs)
+                            output_activation='relu', name='garnet_encoder1', quantize_transforms=True, total_bits=quant_size, int_bits=int_size)(inputs)
     encoder = Reshape((16,2))(encoder)
     # encoder = tf.reshape(encoder, (tf.shape(encoder)[0],) + (16, 2))
-    encoder = GarNet(16, 16, 1, simplified=True, collapse='mean', input_format='xn',
-               output_activation='linear', name='garnet_encoder2', quantize_transforms=False)([encoder, n]) if quant_size <= 0 \
+    encoder = GarNet(32, 16, 16, simplified=True, collapse='mean', input_format='xn',
+               output_activation='relu', name='garnet_encoder2', quantize_transforms=False)([encoder, n]) if quant_size <= 0 \
                    else GarNet(16, 16, 1, simplified=True, collapse='mean', input_format='xn',
-                            output_activation='linear', name='garnet_encoder2', quantize_transforms=True, total_bits=quant_size, int_bits=int_size)([encoder, n])
+                            output_activation='relu', name='garnet_encoder2', quantize_transforms=True, total_bits=quant_size, int_bits=int_size)([encoder, n])
     encoder = Reshape((16,1))(encoder)
     # encoder = tf.reshape(encoder, (tf.shape(encoder)[0],) + (16, 1))
 
-    decoder = GarNet(16, 16*2, 1, simplified=True, collapse='mean', input_format='xn',
-               output_activation='linear', name='garnet_decoder1', quantize_transforms=False)([encoder, n]) if quant_size <= 0 \
+    decoder = GarNet(32, 16*2, 16, simplified=True, collapse='mean', input_format='xn',
+               output_activation='relu', name='garnet_decoder1', quantize_transforms=False)([encoder, n]) if quant_size <= 0 \
                    else GarNet(16, 16*2, 1, simplified=True, collapse='mean', input_format='xn',
-                            output_activation='linear', name='garnet_decoder1', quantize_transforms=True, total_bits=quant_size, int_bits=int_size)([encoder, n])
+                            output_activation='relu', name='garnet_decoder1', quantize_transforms=True, total_bits=quant_size, int_bits=int_size)([encoder, n])
     decoder = Reshape((16,2))(decoder)
     # decoder = tf.reshape(decoder, (tf.shape(decoder)[0],) + (16, 2))
-    decoder = GarNet(16, 16*3, 2, simplified=True, collapse='mean', input_format='xn',
-               output_activation='linear', name='garnet_decoder2', quantize_transforms=False)([decoder, n]) if quant_size <= 0 \
+    decoder = GarNet(32, 16*3, 16, simplified=True, collapse='mean', input_format='xn',
+               output_activation='relu', name='garnet_decoder2', quantize_transforms=False)([decoder, n]) if quant_size <= 0 \
                    else GarNet(16, 16*3, 2, simplified=True, collapse='mean', input_format='xn',
-                            output_activation='linear', name='garnet_decoder2', quantize_transforms=True, total_bits=quant_size, int_bits=int_size)([decoder, n])
+                            output_activation='relu', name='garnet_decoder2', quantize_transforms=True, total_bits=quant_size, int_bits=int_size)([decoder, n])
     decoder = Reshape((16,3))(decoder)
     # decoder = tf.reshape(decoder, (tf.shape(decoder)[0],) + (16, 3))
+
+    decoder[:,:,1].value = np.pi*tf.math.tanh(decoder[:,:,1])
+    decoder[:,:,0].value = 3.29*tf.math.tanh(decoder[:,:,0])
 
     # build model
     model = Model(inputs=[x, n], outputs=decoder)
