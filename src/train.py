@@ -13,7 +13,7 @@ import argparse
 
 '''
 
-Example usage: python train.py --model=graph --signals="./signals" --dataset="./dataset" --out="./output/graph" --quant_size=0 --pruning=False --latent_dim=8 --device 0
+Example usage: python train.py --model garnet --signals signals/signals1 --dataset datasets/dataset1 --out output/test --device 1 --latent_dim 8 --pruning False --quant_size 8
 
 '''
 
@@ -77,6 +77,7 @@ def train(model, signals, dataset, out, latent_dim=8, quant_size=0, pruning=Fals
         
         particles_bg = normalize_features(x_train)
         A_tilde_bg = normalized_adjacency(make_adjacencies(x_train))
+
         particles_bg_test = normalize_features(x_test)
         A_tilde_bg_test = normalized_adjacency(make_adjacencies(x_test))
         
@@ -91,8 +92,8 @@ def train(model, signals, dataset, out, latent_dim=8, quant_size=0, pruning=Fals
                          size=x_train.shape[0]+x_test.shape[0], latent_dim=latent_dim)
 
     # begin training
-    batch_size = 2048
-    n_epochs = 50
+    batch_size = 1024
+    n_epochs = 1
 
     hist = model.fit(
         x=X_train if ae_model is not gcn_vae else particles_bg,
@@ -135,11 +136,12 @@ def train(model, signals, dataset, out, latent_dim=8, quant_size=0, pruning=Fals
     print("\nPredicting on the signals...")
 
     for signal in glob.glob(signals+"/*"):
-        signal_jets = h5py.File(signal, 'r')["jetConstituentsList"][()]
+        signal_jets = h5py.File(signal, 'r')["jetConstituentsList"]
 
         if ae_model == garnet_ae:
             signal_jets = (signal_jets, np.ones((signal_jets.shape[0], 1))*signal_jets.shape[1])
-        elif ae_model in {gcn_vae}:
+        elif ae_model == gcn_vae:
+            signal_jets = np.squeeze(signal_jets, axis=3)
             particles_signal = normalize_features(signal_jets)
             A_tilde_signal = normalized_adjacency(make_adjacencies(signal_jets))
 

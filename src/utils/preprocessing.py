@@ -50,6 +50,7 @@ def normalize_features_jet_based(particles, feats):
             particles[:, :, idx] = (particles[:, :, idx] - np.min(particles[:, :, idx])) / (
                 np.max(particles[:, :, idx])-np.min(particles[:, :, idx]))
     return particles
+    
 
 def normalize_features_event_based(particles):
     idx_px, idx_py, idx_pz, idx_pt, idx_eta, idx_phi = range(6)
@@ -83,13 +84,6 @@ def normalized_adjacency(A):
     D = np.asarray([np.diagflat(dd) for dd in D]) # and diagonalize
     return np.matmul(D, np.matmul(A, D))
 
-
-# def make_adjacencies(particles, pt_idx=2):
-#     # construct mask for real particles
-#     real_p_mask = particles[:, :, pt_idx] > 0
-#     adjacencies = (real_p_mask * real_p_mask.reshape(
-#         real_p_mask.shape[0], real_p_mask.shape[2], real_p_mask.shape[1])).astype('float32')
-#     return adjacencies
 
 def make_adjacencies(particles):
     real_p_mask = particles[:,:,0] > 0 # construct mask for real particles

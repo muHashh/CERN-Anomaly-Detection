@@ -18,7 +18,7 @@ from pathlib import Path
 
 os.environ["PATH"] = "/mnt/data/tools/Xilinx/Vivado/2020.1/bin:" + os.environ["PATH"]
 
-model = load_model("./output/garnet_2_layers_test2/model.h5", custom_objects={"GarNet": GarNet})
+model = load_model("../output/test16/model.h5", custom_objects={"GarNet": GarNet})
 
 
 config = hls4ml.utils.config_from_keras_model(model, granularity="model")
@@ -30,7 +30,7 @@ print("-----------------------------------")
 print("Configuration")
 print("-----------------------------------")
 
-out = "hls_outs/hls_test2"
+out = "hls_test16"
 hls_model = hls4ml.converters.convert_from_keras_model(model, 
                                                        hls_config=config,
                                                        output_dir=out,
@@ -55,8 +55,8 @@ hls_model.compile()
 
 print("\n\n\nRunning Predictions...\n")
 
-dataset = "dataset_scaled2"
-signals = "signals_scaled2"
+dataset = "../datasets/dataset1"
+signals = "../signals/signals1"
 
 dataset = h5py.File(dataset+"/dataset.h5", "r")
 x_test = dataset["x_test"][()]
@@ -71,6 +71,7 @@ prediction.create_dataset('predicted_QCD', data=y_hls)
 
 for signal in glob.glob(signals+"/*"):
     signal_jets = h5py.File(signal, 'r')["jetConstituentsList"][()]
+    signal_jets = (signal_jets, np.ones((signal_jets.shape[0], 1))*signal_jets.shape[1])
 
     y_anomaly = hls_model.predict(signal_jets)
     # y_anomaly = np.expand_dims(np.reshape(y_anomaly, (np.shape(y_anomaly)[0],) + (16, 3)), axis=3)
